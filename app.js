@@ -454,12 +454,13 @@
       processingTitle.textContent = 'Super Resolution ' + scaleLabel + '...';
       processingSub.textContent   = 'Ricostruzione intelligente dettagli e texture...';
       setProgress(40);
+      await wait(50); // Forza il rendering della UI al 40%
 
       let upscaledCanvas;
       try {
         upscaledCanvas = await Promise.race([
           performAIUpscaling(scale, frac => setProgress(Math.round(40 + frac * 30))),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25000))
         ]);
       } catch (err) {
         console.warn('[LumiAI] Switched to bicubic:', err);
@@ -509,9 +510,29 @@
     if (upscalerReady && (upscaler2xInstance || upscaler4xInstance)) {
       const model = upscaler4xInstance || upscaler2xInstance;
       if (model) {
-        const srcW = currentSrc.naturalWidth || currentSrc.width;
-        const srcH = currentSrc.naturalHeight || currentSrc.height;
-        const patchSize = (srcW < 128 || srcH < 128) ? 32 : 128;
+        let srcW = currentSrc.naturalWidth || currentSrc.width;
+        let srcH = currentSrc.naturalHeight || currentSrc.height;
+        
+        // Riduce l'immagine in input all'AI se è troppo grande per evitare il crash del browser
+        const maxInputSize = 640;
+        if (srcW > maxInputSize || srcH > maxInputSize) {
+            const ratio = srcW / srcH;
+            const newW = Math.round(srcW > srcH ? maxInputSize : maxInputSize * ratio);
+            const newH = Math.round(srcH > srcW ? maxInputSize : maxInputSize / ratio);
+            const c = document.createElement('canvas');
+            c.width = newW; c.height = newH;
+            const ctx = c.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(currentSrc, 0, 0, newW, newH);
+            const img = new Image();
+            await new Promise(r => { img.onload = r; img.src = c.toDataURL('image/jpeg', 0.95); });
+            currentSrc = img;
+            srcW = newW;
+            srcH = newH;
+        }
+
+        const patchSize = (srcW < 128 || srcH < 128) ? 64 : 128;
 
         const dataUrl = await model.upscale(currentSrc, {
           patchSize,
@@ -524,9 +545,21 @@
         currentSrc = img;
       }
       const out = document.createElement('canvas');
-      out.width  = Math.min(currentSrc.naturalWidth || currentSrc.width, 3840);
-      out.height = Math.min(currentSrc.naturalHeight || currentSrc.height, 3840);
-      out.getContext('2d').drawImage(currentSrc, 0, 0, out.width, out.height);
+      const origW = originalImage.naturalWidth || originalImage.width;
+      const origH = originalImage.naturalHeight || originalImage.height;
+      const ratio = origW / origH;
+      let finalW = origW * scale;
+      let finalH = origH * scale;
+      if (finalW > 3840 || finalH > 3840) {
+          if (finalW > finalH) { finalW = 3840; finalH = Math.round(3840 / ratio); }
+          else { finalH = 3840; finalW = Math.round(3840 * ratio); }
+      }
+      out.width  = finalW;
+      out.height = finalH;
+      const ctx = out.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(currentSrc, 0, 0, out.width, out.height);
       return out;
     }
     return canvasFallbackUpscale(scale);
@@ -536,10 +569,17 @@
     if (!originalImage) return document.createElement('canvas');
     const origW = originalImage.naturalWidth || originalImage.width || 400;
     const origH = originalImage.naturalHeight || originalImage.height || 300;
-    const ratio  = origW / origH;
-    const upW    = Math.min(origW * scale, 3840);
-    const upH    = Math.round(upW / ratio);
-    const c      = document.createElement('canvas');
+    const ratio = origW / origH;
+    
+    let upW = origW * scale;
+    let upH = origH * scale;
+    // Evita crash bloccando sia width che height al massimo di 3840
+    if (upW > 3840 || upH > 3840) {
+        if (upW > upH) { upW = 3840; upH = Math.round(3840 / ratio); }
+        else { upH = 3840; upW = Math.round(3840 * ratio); }
+    }
+    
+    const c = document.createElement('canvas');
     c.width = upW; c.height = upH;
     const ctx = c.getContext('2d');
     ctx.imageSmoothingEnabled = true;
