@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LumiAI – Potenzia la Qualità dei Tuoi Media</title>
+  <meta name="description" content="LumiAI è il tool AI più avanzato per aumentare la risoluzione e qualità di foto e video. Upscaling intelligente in pochi secondi." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Background particles -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2L17.5 10.5L26 14L17.5 17.5L14 26L10.5 17.5L2 14L10.5 10.5L14 2Z" fill="url(#gold-gradient)"/>
+            <defs>
+              <linearGradient id="gold-gradient" x1="2" y1="2" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F5C842"/>
+                <stop offset="1" stop-color="#C8923A"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="logo-text">Lumi<span class="logo-accent">AI</span></span>
+      </div>
+      <nav class="header-nav">
+        <span class="badge-pill">⚡ AI Upscaling</span>
+        <span class="badge-pill">🎬 Video + Foto</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-tag">✦ AI Super Resolution · Remini-grade Clarity Engine</div>
+    <h1 class="hero-title">
+      Potenzia la qualità<br />
+      dei tuoi <span class="gradient-text">media</span>
+    </h1>
+    <p class="hero-subtitle">
+      Carica foto o video e sfrutta reti neurali profonde per un <strong>AI Upscaling</strong> reale,<br class="br-desktop" />
+      super risoluzione fino a 8×, massima nitidezza e ricostruzione dei dettagli.
+    </p>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">8×</span><span class="stat-label">AI Super Resolution</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num">ESRGAN</span><span class="stat-label">Deep Neural Network</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num">Ultra HD</span><span class="stat-label">Output Cristallino</span></div>
+    </div>
+  </section>
+
+  <!-- Main App -->
+  <main class="app-container" id="app-main">
+
+    <!-- Upload Zone -->
+    <section class="upload-section" id="upload-section">
+      <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Carica file media">
+        <div class="upload-zone-inner">
+          <div class="upload-icon-wrapper">
+            <div class="upload-icon-ring"></div>
+            <svg class="upload-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M24 8L24 32M24 8L16 16M24 8L32 16" stroke="url(#up-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 36C8 38.2091 9.79086 40 12 40H36C38.2091 40 40 38.2091 40 36V32" stroke="url(#up-grad)" stroke-width="3" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="up-grad" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#F5C842"/>
+                  <stop offset="1" stop-color="#C8923A"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h2 class="upload-title">Trascina qui il tuo file</h2>
+          <p class="upload-sub">oppure clicca per sfogliare</p>
+          <div class="upload-formats">
+            <span class="format-tag">JPG</span>
+            <span class="format-tag">PNG</span>
+            <span class="format-tag">WEBP</span>
+            <span class="format-tag">MP4</span>
+            <span class="format-tag">MOV</span>
+            <span class="format-tag">WEBM</span>
+          </div>
+          <p class="upload-limit">Max 200MB · Foto e Video supportati</p>
+        </div>
+        <input type="file" id="file-input" accept="image/*,video/*" hidden />
+      </div>
+    </section>
+
+    <!-- Processing Panel -->
+    <section class="processing-panel hidden" id="processing-panel">
+
+      <!-- File Info Bar -->
+      <div class="file-info-bar" id="file-info-bar">
+        <div class="file-info-left">
+          <div class="file-type-badge" id="file-type-badge">IMG</div>
+          <div class="file-meta">
+            <span class="file-name" id="file-name">filename.jpg</span>
+            <span class="file-size" id="file-size">0 MB</span>
+          </div>
+        </div>
+        <button class="btn-ghost" id="btn-change-file">↩ Cambia file</button>
+      </div>
+
+      <!-- Enhancement Settings -->
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-title-row">
+            <h3 class="settings-title">⚙️ Parametri AI</h3>
+            <span class="ai-status-badge" id="ai-model-badge">
+              <span class="ai-status-dot"></span>
+              <span id="ai-status-text">ESRGAN AI Ready</span>
+            </span>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="scale-select">Fattore di Upscaling</label>
+            <div class="select-wrapper">
+              <select id="scale-select" class="custom-select">
+                <option value="2">2× — HD</option>
+                <option value="4" selected>4× — Full HD+</option>
+                <option value="8">8× — Ultra HD</option>
+                <option value="16">16× — Remini Max 🔥</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="noise-select">Riduzione Rumore</label>
+            <div class="select-wrapper">
+              <select id="noise-select" class="custom-select">
+                <option value="light">Leggera</option>
+                <option value="medium" selected>Media</option>
+                <option value="heavy">Intensa</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="sharpen-select">Nitidezza AI</label>
+            <div class="select-wrapper">
+              <select id="sharpen-select" class="custom-select">
+                <option value="low">Bassa</option>
+                <option value="medium">Media</option>
+                <option value="high">Alta</option>
+                <option value="remini" selected>✦ Remini Max 🔥</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="color-select">Potenziamento Colori</label>
+            <div class="select-wrapper">
+              <select id="color-select" class="custom-select">
+                <option value="none">Nessuno</option>
+                <option value="vivid">Vivace</option>
+                <option value="cinematic">Cinematico</option>
+                <option value="natural">Naturale</option>
+                <option value="remini" selected>✦ Remini HDR 🔥</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="preview-card" id="preview-card">
+          <h3 class="settings-title">👁 Anteprima</h3>
+          <div class="preview-container" id="preview-container">
+            <!-- Image preview -->
+            <div class="img-preview-wrapper hidden" id="img-preview-wrapper">
+              <div class="before-after-wrapper" id="before-after-wrapper">
+                <canvas id="before-canvas" class="preview-canvas"></canvas>
+                <canvas id="after-canvas" class="preview-canvas enhanced-canvas hidden"></canvas>
+                <div class="ba-labels hidden" id="ba-labels">
+                  <span class="ba-label ba-label-before">PRIMA</span>
+                  <span class="ba-label ba-label-after">DOPO</span>
+                </div>
+                <div class="ba-divider hidden" id="ba-divider"></div>
+              </div>
+            </div>
+            <!-- Video preview -->
+            <div class="video-preview-wrapper hidden" id="video-preview-wrapper">
+              <video id="video-preview" class="preview-video" controls muted playsinline></video>
+              <div class="video-overlay hidden" id="video-overlay">
+                <div class="video-overlay-tag">✦ ENHANCED</div>
+              </div>
+            </div>
+            <!-- Placeholder -->
+            <div class="preview-placeholder" id="preview-placeholder">
+              <div class="placeholder-icon">🖼</div>
+              <p>L'anteprima apparirà qui</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhance Button -->
+      <div class="action-bar">
+        <button class="btn-enhance" id="btn-enhance">
+          <span class="btn-enhance-inner">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L12 8L18 10L12 12L10 18L8 12L2 10L8 8L10 2Z" fill="white"/></svg>
+            Migliora con AI
+          </span>
+        </button>
+        <button class="btn-download hidden" id="btn-download">
+          <span>⬇ Scarica Migliorato</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay hidden" id="processing-overlay">
+      <div class="processing-card">
+        <div class="ai-spinner">
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring spinner-ring-2"></div>
+          <div class="spinner-core">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sp-grad)"/><defs><linearGradient id="sp-grad" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#F5C842"/><stop offset="1" stop-color="#C8923A"/></linearGradient></defs></svg>
+          </div>
+        </div>
+        <h3 class="processing-title" id="processing-title">Analisi in corso…</h3>
+        <p class="processing-sub" id="processing-sub">LumiAI sta analizzando il tuo file</p>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <span class="progress-pct" id="progress-pct">0%</span>
+        <div class="processing-steps">
+          <div class="proc-step" id="step-1">🔍 Analisi struttura immagine</div>
+          <div class="proc-step" id="step-2">🧠 Rete neurale ESRGAN pronta</div>
+          <div class="proc-step" id="step-3">✨ Super Resolution &amp; Upscaling</div>
+          <div class="proc-step" id="step-4">🔬 Remini Clarity Engine™</div>
+          <div class="proc-step" id="step-5">🎨 HDR Color Grading &amp; Output</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <h2 class="features-title">Come funziona LumiAI</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📤</div>
+        <h3>Carica</h3>
+        <p>Trascina foto o video di qualsiasi risoluzione. Supportiamo tutti i formati più comuni.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>AI Analizza</h3>
+        <p>Il modello AI analizza ogni pixel per identificare pattern, texture e aree da migliorare.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3>Potenzia</h3>
+        <p>Upscaling intelligente fino a 8×, riduzione rumore e ripristino dei dettagli perduti.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⬇</div>
+        <h3>Scarica</h3>
+        <p>Esporta il risultato in alta qualità, pronto per la stampa, social o streaming professionale.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <span class="logo-text" style="font-size: 1rem;">Lumi<span class="logo-accent">AI</span></span>
+      <p class="footer-copy">© 2026 LumiAI · Tutti i file vengono elaborati localmente, la tua privacy è garantita.</p>
+    </div>
+  </footer>
+
+  <!-- AI Super Resolution Engine (TensorFlow.js + ESRGAN + UpscalerJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/2x.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/4x.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/upscaler@latest/dist/browser/umd/upscaler.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
