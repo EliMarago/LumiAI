@@ -610,12 +610,12 @@
     const noisePasses = { light: 0, medium: 1, heavy: 2, remini: 1 }[noise] || 1;
     for (let p = 0; p < noisePasses; p++) pixels = fastBoxBlur(pixels, w, h);
 
-    // Sharpening configuration
+    // Sharpening configuration (ottimizzato per evitare freeze di memoria: passaggi ridotti, forza aumentata)
     const cfg = {
       low:    { usm: 1, usmS: 3.5,  wide: 0, wideS: 0,   hf: 0, hfA: 0,   lap: 1, lapA: 2.0, mc: 0   },
-      medium: { usm: 2, usmS: 6.0,  wide: 1, wideS: 2.0, hf: 1, hfA: 1.5, lap: 2, lapA: 3.5, mc: 0.8 },
-      high:   { usm: 3, usmS: 10.0, wide: 2, wideS: 3.5, hf: 2, hfA: 2.5, lap: 3, lapA: 5.5, mc: 1.5 },
-      remini: { usm: 5, usmS: 14.0, wide: 3, wideS: 5.5, hf: 4, hfA: 4.0, lap: 4, lapA: 7.0, mc: 2.5 },
+      medium: { usm: 1, usmS: 6.0,  wide: 1, wideS: 2.0, hf: 1, hfA: 1.5, lap: 1, lapA: 3.5, mc: 0.8 },
+      high:   { usm: 1, usmS: 10.0, wide: 1, wideS: 3.5, hf: 1, hfA: 2.5, lap: 1, lapA: 5.5, mc: 1.5 },
+      remini: { usm: 1, usmS: 20.0, wide: 1, wideS: 6.5, hf: 1, hfA: 5.0, lap: 1, lapA: 8.0, mc: 2.5 },
     };
     const sc = cfg[sharpen] || cfg.remini;
 
