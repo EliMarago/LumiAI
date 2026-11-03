@@ -44,7 +44,7 @@
 
   <!-- Hero -->
   <section class="hero">
-    <div class="hero-tag">✦ AI Super Resolution · Remini-grade Clarity Engine</div>
+    <div class="hero-tag">✦ AI Super Resolution (ESRGAN)</div>
     <h1 class="hero-title">
       Potenzia la qualità<br />
       dei tuoi <span class="gradient-text">media</span>
@@ -120,7 +120,7 @@
             <h3 class="settings-title">⚙️ Parametri AI</h3>
             <span class="ai-status-badge" id="ai-model-badge">
               <span class="ai-status-dot"></span>
-              <span id="ai-status-text">ESRGAN AI Ready</span>
+              <span id="ai-status-text">Caricamento AI…</span>
             </span>
           </div>
           <div class="setting-row">
@@ -130,7 +130,16 @@
                 <option value="2">2× — HD</option>
                 <option value="4" selected>4× — Full HD+</option>
                 <option value="8">8× — Ultra HD</option>
-                <option value="16">16× — Remini Max 🔥</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="model-select">Modello AI (foto)</label>
+            <div class="select-wrapper">
+              <select id="model-select" class="custom-select">
+                <option value="slim">Veloce</option>
+                <option value="medium" selected>Bilanciato — più dettaglio</option>
+                <option value="thick">Massima nitidezza — lento</option>
               </select>
             </div>
           </div>
@@ -149,9 +158,9 @@
             <div class="select-wrapper">
               <select id="sharpen-select" class="custom-select">
                 <option value="low">Bassa</option>
-                <option value="medium">Media</option>
+                <option value="medium" selected>Media</option>
                 <option value="high">Alta</option>
-                <option value="remini" selected>✦ Remini Max 🔥</option>
+                <option value="ultra">Molto alta</option>
               </select>
             </div>
           </div>
@@ -160,10 +169,9 @@
             <div class="select-wrapper">
               <select id="color-select" class="custom-select">
                 <option value="none">Nessuno</option>
-                <option value="vivid">Vivace</option>
+                <option value="vivid" selected>Vivace</option>
                 <option value="cinematic">Cinematico</option>
                 <option value="natural">Naturale</option>
-                <option value="remini" selected>✦ Remini HDR 🔥</option>
               </select>
             </div>
           </div>
@@ -233,11 +241,11 @@
         </div>
         <span class="progress-pct" id="progress-pct">0%</span>
         <div class="processing-steps">
-          <div class="proc-step" id="step-1">🔍 Analisi struttura immagine</div>
-          <div class="proc-step" id="step-2">🧠 Rete neurale ESRGAN pronta</div>
-          <div class="proc-step" id="step-3">✨ Super Resolution &amp; Upscaling</div>
-          <div class="proc-step" id="step-4">🔬 Remini Clarity Engine™</div>
-          <div class="proc-step" id="step-5">🎨 HDR Color Grading &amp; Output</div>
+          <div class="proc-step" id="step-1">🔍 Analisi contenuto</div>
+          <div class="proc-step" id="step-2">🧠 Modello AI caricato</div>
+          <div class="proc-step" id="step-3">✨ Upscaling pixel</div>
+          <div class="proc-step" id="step-4">🎨 Ottimizzazione colori</div>
+          <div class="proc-step" id="step-5">💾 Finalizzazione</div>
         </div>
       </div>
     </div>
@@ -280,10 +288,19 @@
   </footer>
 
   <!-- AI Super Resolution Engine (TensorFlow.js + ESRGAN + UpscalerJS) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/2x.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/4x.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/upscaler@latest/dist/browser/umd/upscaler.min.js"></script>
+  <!-- Versioni fissate: upscaler@1.0.0 richiede @tensorflow/tfjs ~4.11 -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/default-model@1.0.0/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@1.0.0/dist/umd/models/esrgan-slim/src/x2/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@1.0.0/dist/umd/models/esrgan-slim/src/x4/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@1.0.0/dist/umd/models/esrgan-slim/src/x8/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/models/esrgan-medium/src/x2/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/models/esrgan-medium/src/x4/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/models/esrgan-medium/src/x8/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-thick@1.0.0/dist/umd/models/esrgan-thick/src/x2/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-thick@1.0.0/dist/umd/models/esrgan-thick/src/x4/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-thick@1.0.0/dist/umd/models/esrgan-thick/src/x8/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -562,9 +562,11 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  clip-path: inset(0 50% 0 0);
-  transition: clip-path 0.5s ease;
+  /* mostra il "DOPO" a destra del divisore (aggiornato via JS) */
+  clip-path: inset(0 0 0 50%);
 }
+.before-after-wrapper { touch-action: pan-y; cursor: ew-resize; user-select: none; }
+.ba-divider { pointer-events: none; transform: translateX(-1px); }
 
 .ba-labels {
   position: absolute;
