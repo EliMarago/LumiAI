@@ -141,6 +141,7 @@
 
   function clearResults() {
     state.resultCanvas = null; state.resultBlob = null;
+    if (state.videoResultUrl && state.videoResultUrl.startsWith('blob:')) URL.revokeObjectURL(state.videoResultUrl);
     state.videoJobId = null; state.videoResultUrl = null; state.videoResultName = null;
     show(el.after, false); show(el.baLabels, false); show(el.baDivider, false); show(el.videoOverlay, false);
     show(el.btnDownload, false);
@@ -172,9 +173,9 @@
     } else {
       el.video.src = state.objectUrl;
       el.video.load();
-      checkServer().then((ok) => {
-        if (!ok) showToast('Per i video avvia il server: apri il Terminale nella cartella LumiaAI e digita "npm start"', 'error', 7000);
-      });
+      if (!isLocalPage() && file.size > BROWSER_VIDEO_MAX_BYTES) {
+        showToast(`Video troppo grande per l'elaborazione nel browser (max ${formatSize(BROWSER_VIDEO_MAX_BYTES)})`, 'error', 6000);
+      }
     }
   }
 
@@ -452,17 +453,48 @@
     showToast(`Foto migliorata: ${img.naturalWidth}×${img.naturalHeight} → ${result.width}×${result.height}. Trascina sull'anteprima per confrontare.`, 'success', 5000);
   }
 
-  // ---------- Elaborazione video (server ffmpeg) ----------
+  // ---------- Elaborazione video ----------
+  // Due motori, stessi filtri (video-filters.js):
+  //  - server locale (npm start): ffmpeg nativo, veloce, fino a 4K
+  //  - browser (ffmpeg.wasm): funziona anche su GitHub Pages, più lento, fino a 1080p
+  const SERVER_MAX_SIDE = 3840;
+  const BROWSER_MAX_SIDE = 1920;
+  const BROWSER_VIDEO_MAX_BYTES = 500 * 1024 * 1024;
+  const FFMPEG_CORE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+
+  function isLocalPage() {
+    return location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+  }
+
+  // Il server si cerca solo quando l'app è aperta in locale: da GitHub Pages
+  // il browser chiederebbe il permesso di accedere alla rete locale.
   async function checkServer() {
+    if (!isLocalPage()) return false;
     try {
       const r = await fetch(API + '/api/health', { cache: 'no-store' });
       if (!r.ok) return false;
       const j = await r.json();
-      if (!j.ffmpeg) { showToast('ffmpeg non trovato sul server: esegui "brew install ffmpeg"', 'error', 7000); return false; }
-      return true;
+      return !!j.ffmpeg;
     } catch (e) { return false; }
   }
 
+  function showVideoResult({ url, name, width, height, engine }) {
+    state.videoResultUrl = url;
+    state.videoResultName = name;
+    el.video.src = url;
+    el.video.load();
+    show(el.videoOverlay, true);
+    show(el.btnDownload, true);
+    setStep(5);
+    setProgress(100, `Fatto: ${width}×${height}` + (engine === 'server' ? ', salvato anche in outputs/' : ''));
+    setText(el.title, 'Elaborazione completata');
+  }
+
+  function videoOptions() {
+    return { scale: el.scale.value, noise: el.noise.value, sharpen: el.sharpen.value, color: el.color.value };
+  }
+
+  // --- Motore 1: server locale ---
   function uploadVideo(file, fields, onProgress) {
     return new Promise((resolve, reject) => {
       const form = new FormData();
@@ -496,17 +528,11 @@
     }
   }
 
-  async function enhanceVideo() {
-    if (!(await checkServer())) {
-      showToast('Server video non attivo. Nel Terminale, dentro la cartella LumiaAI: npm start', 'error', 7000);
-      return;
-    }
+  async function enhanceVideoServer() {
     openOverlay('Miglioramento video in corso…');
     setText(el.sub, 'Caricamento del video sul motore locale…');
-    const info = await uploadVideo(state.file, {
-      scale: el.scale.value, noise: el.noise.value, sharpen: el.sharpen.value, color: el.color.value,
-    }, (p) => setProgress(p * 10, `Caricamento… ${Math.round(p * 100)}%`));
-
+    const info = await uploadVideo(state.file, videoOptions(),
+      (p) => setProgress(p * 10, `Caricamento… ${Math.round(p * 100)}%`));
     state.videoJobId = info.id;
     setStep(3);
     if (info.effectiveScale < (parseInt(el.scale.value, 10) || 2)) {
@@ -516,17 +542,133 @@
       setStep(p < 50 ? 3 : 4);
       setProgress(10 + p * 0.88, `Rumore, upscaling ${info.width}×${info.height}, nitidezza e colore… ${p}%`);
     });
-    setStep(5);
-    state.videoResultUrl = `${API}/api/video/download/${info.id}`;
-    state.videoResultName = done.file;
-
-    el.video.src = state.videoResultUrl;
-    el.video.load();
-    show(el.videoOverlay, true);
-    show(el.btnDownload, true);
-    setProgress(100, `Fatto: ${info.width}×${info.height}, salvato anche in outputs/`);
-    setText(el.title, 'Elaborazione completata');
+    showVideoResult({ url: `${API}/api/video/download/${info.id}`, name: done.file, width: info.width, height: info.height, engine: 'server' });
     showToast(`Video migliorato (${info.width}×${info.height}${info.hasAudio ? ', audio incluso' : ''}). Copia salvata in outputs/${done.file}`, 'success', 6000);
+  }
+
+  // --- Motore 2: ffmpeg.wasm nel browser ---
+  let ffmpegInstance = null;
+  let ffmpegLog = [];
+  let ffmpegLogHandler = null;
+
+  async function fetchAsBlobUrl(url, type, onProgress) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Download motore video fallito (' + resp.status + ')');
+    const total = Number(resp.headers.get('content-length')) || 0;
+    if (!resp.body || !total) return URL.createObjectURL(new Blob([await resp.arrayBuffer()], { type }));
+    const reader = resp.body.getReader();
+    const chunks = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); got += value.length;
+      onProgress(got / total);
+    }
+    return URL.createObjectURL(new Blob(chunks, { type }));
+  }
+
+  async function getFFmpeg(onProgress) {
+    if (ffmpegInstance) return ffmpegInstance;
+    if (!window.FFmpegWASM || !window.FFmpegWASM.FFmpeg) throw new Error('Motore video del browser non caricato');
+    const ff = new window.FFmpegWASM.FFmpeg();
+    ff.on('log', ({ message }) => {
+      ffmpegLog.push(message); if (ffmpegLog.length > 60) ffmpegLog.shift();
+      if (ffmpegLogHandler) ffmpegLogHandler(message);
+    });
+    const coreURL = await fetchAsBlobUrl(`${FFMPEG_CORE}/ffmpeg-core.js`, 'text/javascript', () => {});
+    const wasmURL = await fetchAsBlobUrl(`${FFMPEG_CORE}/ffmpeg-core.wasm`, 'application/wasm', onProgress);
+    await ff.load({ coreURL, wasmURL });
+    ffmpegInstance = ff;
+    return ff;
+  }
+
+  function resetFFmpeg() {
+    if (ffmpegInstance) { try { ffmpegInstance.terminate(); } catch (e) {} }
+    ffmpegInstance = null;
+  }
+
+  function waitForMetadata(v) {
+    if (v.readyState >= 1 && v.videoWidth) return Promise.resolve();
+    return new Promise((res, rej) => {
+      v.addEventListener('loadedmetadata', () => res(), { once: true });
+      v.addEventListener('error', () => rej(new Error('Il browser non riesce a leggere questo video')), { once: true });
+    });
+  }
+
+  async function enhanceVideoBrowser() {
+    const file = state.file;
+    if (file.size > BROWSER_VIDEO_MAX_BYTES) {
+      throw new Error(`Video troppo grande per il browser (max ${formatSize(BROWSER_VIDEO_MAX_BYTES)}). Usa la versione locale con "npm start".`);
+    }
+    openOverlay('Miglioramento video nel browser…');
+    setStep(1);
+    await waitForMetadata(el.video);
+    const meta = { width: el.video.videoWidth, height: el.video.videoHeight };
+    const duration = el.video.duration || 0;
+    const { filter, outW, outH, effectiveScale, requestedScale } =
+      window.LumiVideoFilters.buildVideoFilter(meta, videoOptions(), BROWSER_MAX_SIDE);
+    if (effectiveScale < requestedScale) {
+      showToast(`Nel browser l'uscita è limitata a 1080p: ${outW}×${outH}. Per il 4K usa la versione locale.`, 'info', 6000);
+    }
+    if (duration > 60) {
+      showToast('Video lungo: nel browser può richiedere parecchi minuti. Tieni la scheda aperta.', 'info', 6000);
+    }
+
+    setStep(2);
+    setText(el.sub, 'Caricamento motore video (~32 MB, solo la prima volta)…');
+    const ff = await getFFmpeg((p) => setProgress(p * 8, `Caricamento motore video… ${Math.round(p * 100)}%`));
+
+    const ext = ((file.name.match(/\.([a-z0-9]+)$/i) || [])[1] || 'mp4').toLowerCase();
+    const inName = 'input.' + ext, outName = 'output.mp4';
+    setProgress(9, 'Preparazione del video…');
+    await ff.writeFile(inName, new Uint8Array(await file.arrayBuffer()));
+
+    setStep(3);
+    ffmpegLog = [];
+    ffmpegLogHandler = (msg) => {
+      const m = /time=\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(msg);
+      if (m && duration > 0) {
+        const t = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]);
+        const p = Math.min(99, Math.round((t / duration) * 100));
+        setStep(p < 50 ? 3 : 4);
+        setProgress(10 + p * 0.88, `Elaborazione ${outW}×${outH} nel browser… ${p}%`);
+      }
+    };
+    let code;
+    try {
+      code = await ff.exec([
+        '-i', inName,
+        '-map', '0:v:0', '-map', '0:a?',
+        '-vf', filter,
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+        '-c:a', 'aac', '-b:a', '192k',
+        '-movflags', '+faststart',
+        outName,
+      ]);
+    } catch (err) {
+      resetFFmpeg(); // il worker potrebbe essere in uno stato non valido (es. memoria esaurita)
+      throw new Error('Elaborazione nel browser interrotta: ' + (err.message || err));
+    } finally {
+      ffmpegLogHandler = null;
+    }
+    if (code !== 0) {
+      console.error('[LumiAI] ffmpeg.wasm log:\n' + ffmpegLog.join('\n'));
+      try { await ff.deleteFile(inName); } catch (e) {}
+      throw new Error('ffmpeg nel browser ha restituito un errore (dettagli nella console)');
+    }
+
+    setStep(5); setProgress(99, 'Finalizzazione…');
+    const data = await ff.readFile(outName);
+    try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch (e) {}
+    const url = URL.createObjectURL(new Blob([data], { type: 'video/mp4' }));
+    const name = `${baseName()}_lumiAI_enhanced.mp4`;
+    showVideoResult({ url, name, width: outW, height: outH, engine: 'browser' });
+    showToast(`Video migliorato nel browser (${outW}×${outH}). Premi "Scarica" per salvarlo.`, 'success', 6000);
+  }
+
+  async function enhanceVideo() {
+    if (await checkServer()) return enhanceVideoServer();
+    return enhanceVideoBrowser();
   }
 
   // ---------- Avvio elaborazione ----------
